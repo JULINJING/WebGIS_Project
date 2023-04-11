@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="author" content="网络GIS课程设计第12小组">
+        <meta name="description" content="这是武汉大学遥感信息工程学院2020级网络GIS课程设计项目，
+        搭建基于成都市主城区生鲜零售店面信息的成都市主城区生鲜冷链服务系统。">
+        <title>成都市主城区生鲜冷链服务系统</title>
+        <link rel="icon" href="https://img.icons8.com/plasticine/100/null/small-business.png" type="image/x-icon">
+        <!-- 引入样式 -->
+        <link rel="stylesheet" href="node_modules/ol/ol.css">
+        <link rel="stylesheet" href="./css/index.css">
+    </head>
+    <body>
+        <!--Vue绑定容器 同时提供背景图效果-->
+        <div id="app">
+            <!--控制header和第二个container垂直布局-->
+            <el-container class="home-container">
+                <!--标题-->
+                <el-header height="67px">
+                    <!-- <img src="./img/TitleLight_Victory_Blue.png" alt=""> -->
+                </el-header>
+                <!--主体内容 控制aside和main水平布局-->
+                <el-container>
+                    <!--店与商品信息展示-->
+                    <el-aside width="400px">
+                        <el-button id="cart-button" class="related-button" type="primary" round @click="dialogVisible = true"><i class="el-icon-shopping-cart-1"></i>购物车</el-button>
+                        <div class="part" id="first-part1">
+                            <!-- 表格 -->
+                            <table id="common-table" width="390px">
+                                <el-empty id="tempEmpty1" description="暂无数据"></el-empty>
+                            </table>
+                        </div>
+                        <div id="products-graph" class="part">
+                            <el-empty id="tempEmpty2" description="暂无数据"></el-empty>
+                            <div id="radarChart" style="width: 398px;height:300px;display: none;">
+                            </div>
+                        </div>
+                    </el-aside>
+                    <!--地图-->
+                    <el-main>
+                        <div class="part-map" id="map" :class="[isFolded ? 'foldMapStyle': '', 'normalMapStyle']"></div>
+                        <div class="part-info" :class="[isFolded ? 'foldInfoStyle': '','normalInfoStyle']"></div>
+                        <!--:style="hiddenInfoStyle" style写法-->
+                        <!--:class="[isFolded ? 'foldMapStyle': '', 'normalMapStyle']" :class="[isFolded ? 'foldInfoStyle': '','normalInfoStyle']" class写法-->
+                        <el-checkbox style="position: absolute;top: 110px;left: 1020px;">商店信息</el-checkbox>
+                        <el-checkbox id="location_select" style="position: absolute;top: 130px;left: 1020px;">模拟选点</el-checkbox>
+                        <el-checkbox id="near-store" :checked="true"
+                            style="position: absolute;top: 150px;left: 1020px; display:none;">附近商店
+                        </el-checkbox>
+                        <el-checkbox id="recom-store" :checked="true"
+                            style="position: absolute;top: 170px;left: 1020px; display:none;">推荐商店
+                        </el-checkbox>
+                    </el-main>
+                    <!--其他-->
+                    <el-aside width="400px">
+                        <div class="part function" id="first-part2">
+                            <el-button class="related-button" id="near-store-button" type="primary" round><i class="el-icon-map-location"></i>附近的生鲜零售商店</el-button>
+                            <div class="query-box1">
+                                <div class="sub-title">输入店铺名搜索</div>
+                                <el-autocomplete
+                                    ref="auto1"
+                                    class="inline-input"
+                                    v-model="state1"
+                                    :fetch-suggestions="querySearchShop"
+                                    placeholder="请输入店铺名"
+                                    :trigger-on-focus="false"
+                                    @select="handleSelect1"
+                                ></el-autocomplete><!--clearable-->
+                            </div>
+                            <div class="query-box1">
+                                <div class="sub-title">输入商品名搜索</div>
+                                <el-autocomplete
+                                    ref="auto2"
+                                    class="inline-input"
+                                    v-model="state2"
+                                    :fetch-suggestions="querySearchProduct"
+                                    placeholder="请输入商品名"
+                                    :trigger-on-focus="false"
+                                    @select="handleSelect2"
+                                ></el-autocomplete></div>
+                            <div class="query-box2" id="slider-box">
+                                <div class="sub-title">请选择价格区间</div>
+                                <!-- 滑块 -->
+                                <el-slider v-model="slidervalue" range :min="slidermin" range :max="slidermax" :step="0.01"
+                                    :disabled="sliderdisabled" style="width: 200px;margin-left: 5px;">
+                                </el-slider>
+                            </div>
+                        </div>
+                        <div class="rank-page">
+                            <div ref="scrollRank" id="scroll-rank" class="son-part" style="width: 400px;height: 153px;"></div>
+                            <div id="product-rank" class="son-part" style="width: 400px;height: 260px;"></div>
+                        </div>
+                    </el-aside>
+                </el-container>
+            </el-container>
+            <!--购物车-->
+            <el-dialog
+                title="购物车"
+                :visible.sync="dialogVisible"
+                width="60%"
+                center
+                top="150px"
+                ><!--fullscreen-->
+                <div id="shopping-cart" class="page-shopping-cart">
+                    <!-- 标题 -->
+                    <div class="cart-product-title">
+                        <div class="td-check fl">
+                            <!-- 当切换到check-true类名时就调用全选函数 -->
+                            <span class="checked-span fl check-all" :class="{'check-true':isSelectAll}"
+                            @click="selectProduct(isSelectAll)"></span>  <!-- 选择框 -->
+                            全选
+                        </div>
+                        <div class="td-product fl">产品名称</div>
+                        <div class="td-num fl">数量</div>
+                        <div class="td-price fl">单价(元/kg)</div>
+                        <div class="td-total fl">小计(元)</div>
+                        <div class="td-do fl">操作</div>
+                    </div>
+                    <!-- 内容 -->
+                    <div class="cart-product">
+                    <table id="cart-table">
+                        <tbody>
+                        <tr v-for='(item,index) in productList'>
+                            <td class="td-check">
+                            <span class="check-span" @click='item.select=!item.select' :class="{'check-true':item.select}"></span>
+                            </td>
+                            <td class="td-product">
+                                <div class="product-info">
+                                <h4>{{item.pro_name}}</h4>
+                                </div>
+                            </td>
+                            <td class="td-num">
+                                <el-input-number v-model="item.pro_num" :min="0" size="mini"></el-input-number>
+                            </td>
+                            <td class="td-price">
+                            <p class="red-text">￥<span class="price-text">{{item.pro_price.toFixed(3)}}</span></p>
+                            </td>
+                            <td class="td-total">
+                            <p class="red-text">￥<span class="price-text">{{(item.pro_price*item.pro_num).toFixed(3)}}</span></p>
+                            </td>
+                            <td class="td-do">
+                            <a href="javascript:;" class="product-delete" @click='deleteOneProduct(index)'>删除</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                    <!-- 最后一行统计 -->
+                    <div class="cart-product-info">
+                        <el-button type="danger" @click="deleteProduct" icon="el-icon-delete" size="medium" style="margin-left: 5px;">删除所选商品</el-button>
+                        <el-button type="success" icon="el-icon-shopping-cart-2" size="medium" style="margin-left: 5px;" @click="dialogVisible = false">继续购物</el-button>
+                        <el-radio-group v-model="radio" size="mini" style="margin-left: 15px;">
+                            <el-radio-button label="店家配送"><i class="el-icon-truck">店家配送</i></el-radio-button>
+                            <el-radio-button label="用户自提"><i class="el-icon-sold-out">用户自提</i></el-radio-button>
+                        </el-radio-group>
+                        <a href="javascript:;" class="fr btn-buy" @click="isFolded=true;dialogVisible = false;">下单</a>
+                        <!-- isFolded=true; class写法 -->
+                        <a href="javascript:;" class="fr product-total">￥<span>{{getTotal.totalPrice.toFixed(3)}}</span></a>
+                        <a href="javascript:;" class="fr check-num"><span>{{getTotal.totalNum}}</span>件商品总计:</a>
+                    </div>
+                </div>
+            </el-dialog>
+        </div>
+        <!-- echarts例 -->
+        <!-- <div id="main1" style="width: 600px;height:400px;"></div>
+        <div id="main2" style="width: 600px;height:400px;"></div>
+        <div id="main3" style="width: 600px;height:400px;"></div>
+        <div id="main4" style="width: 600px;height:400px;"></div>
+        <div id="main5" style="width: 600px;height:400px;"></div>
+        <div id="main6" style="width: 600px;height:400px;"></div> -->
+        <!-- Vue开发环境版本，包含了有帮助的命令行警告 -->
+        <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+        <!-- ElementUI库，引入组件库 -->
+        <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+        <!--jQuery库-->
+        <script src="http://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+        <!--ECharts-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.1/echarts.min.js"></script>
+        <!-- 引入自编写JS -->
+        <script type="module" src="./js/main.js"></script>
+        <!-- <script src="./js/echarts-wordcloud.min.js"></script> -->
+        <!-- echarts例 -->
+        <!-- <script type="text/javascript" src="./js/ecm.js"></script> -->
+        <!-- 点适配浏览器版本 -->
+        <script src="https://cdn.jsdelivr.net/npm/elm-pep@1.0.6/dist/elm-pep.js"></script>
+
+        <script>
+            //geoserver配置
+            //注意：还需在js/geoconfig.js中修改一次
+            //因为直接引入有问题，所以在这里再写一遍
+            var cfg = {
+                host: 'localhost',
+                port: 8088,
+                database: 'WebGIS',
+                storetable: 'store',
+                storeDistView: 'store_dist',
+                storeNameView: 'store_name',
+                storeTypeView: 'store_fresh',
+            }
+            var app = new Vue({
+                el: '#app',
+                data: {
+                    slidervalue: [0, 400],
+                    sliderdisabled: true,
+                    slidermin: 0,
+                    slidermax: 400,
+
+                    radio: '用户自提',
+                    shops: [],
+                    products: [],
+                    state1: '',
+                    state2: '',
+                    // hiddenInfoStyle: {
+                    //     display: 'none',
+                    // },
+                    isFolded: false,
+                    dialogVisible: false,
+                    productList:[
+                        
+                    ],
+                },
+                methods: {
+                    querySearchShop(queryString, cb) {
+                        var shops = this.shops;
+                        var results = queryString ? shops.filter(this.createFilter(queryString)) : shops;
+                        // 调用 callback 返回建议列表的数据
+                        cb(results);
+                    },
+                    querySearchProduct(queryString, cb) {
+                        var products = this.products;
+                        var results = queryString ? products.filter(this.createFilter(queryString)) : products;
+                        // 调用 callback 返回建议列表的数据
+                        cb(results);
+                    },
+                    createFilter(queryString) {
+                        return (item) => {
+                        return (item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+                        };
+                    },
+                    // loadAll1() {
+                    //     return [
+                    //     { "value": "组合生鲜(荆竹店)" },
+                    //     { "value": "众惠生鲜超市" },
+                    //     { "value": "至胜客生鲜百货超市" },
+                    //     { "value": "9号生鲜" },
+                    //     { "value": "e家生鲜超市(成都和安二路店)" }
+                    //     ];
+                    // },
+                    // loadAll2() {
+                    //     return [
+                    //     { "value": "草莓" },
+                    //     { "value": "带鱼" },
+                    //     { "value": "鸡爪" },
+                    //     { "value": "鸭掌" },
+                    //     { "value": "香菜" }
+                    //     ];
+                    // },
+                    firstloadstore() {
+                        //获取所有店铺
+                        var xhr = new XMLHttpRequest() || new ActiveXObject("Microsoft.XMLHTTP");
+                        xhr.open("get", `http://${cfg.host}:${cfg.port}/geoserver/${cfg.database}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${cfg.database}%3A${cfg.storeNameView}&outputFormat=application%2Fjson`, true);
+                        xhr.send();
+                        xhr.onreadystatechange = () => {
+                            if (xhr.readyState == 4) {
+                                if (xhr.status == 200) {
+                                    var res = JSON.parse(xhr.responseText)
+                                    // console.log(res)
+                                    res.features.forEach(e => {
+                                        this.shops.push({ value: e.properties.name })
+                                    })
+                                    // console.log(this.shops)
+                                }
+                            }
+                        }
+                    },
+                    firstloadproduct() {
+                        //获取所有商品
+                        var xhr = new XMLHttpRequest() || new ActiveXObject("Microsoft.XMLHTTP");
+                        xhr.open("get", `http://${cfg.host}:${cfg.port}/geoserver/${cfg.database}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${cfg.database}%3A${cfg.storeTypeView}&outputFormat=application%2Fjson&viewparams=word: `, true);
+                        xhr.send();
+                        xhr.onreadystatechange = () => {
+                            if (xhr.readyState == 4) {
+                                if (xhr.status == 200) {
+                                    var res = JSON.parse(xhr.responseText)
+                                    var charlst = []
+                                    // console.log(res)
+                                    res.features.forEach(e => {
+                                        if (charlst.indexOf(e.properties.type) < 0) {
+                                            charlst.push(e.properties.type)
+                                            this.products.push({ value: e.properties.type })
+                                        }
+                                    })
+                                    // console.log(this.products)
+                                    // console.log(charlst)
+                                }
+                            }
+                        }
+                    },
+                    handleSelect1(item) {
+                        //即可响应事件
+                        // console.log(item);
+                        // 获取焦点
+                        this.$refs.auto1.focus();
+                    },
+                    handleSelect2(item) {
+                        //即可响应事件
+                        // 获取焦点
+                        this.$refs.auto2.focus();
+                        //ajax请求，获取选择商品的价格范围
+                        // console.log(item);
+                        this.sliderdisabled = false
+                        var xhr = new XMLHttpRequest() || new ActiveXObject("Microsoft.XMLHTTP");
+                        xhr.open("get", `http://${cfg.host}:${cfg.port}/geoserver/${cfg.database}/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=${cfg.database}%3A${cfg.storeTypeView}&outputFormat=application%2Fjson&viewparams=word:${item.value}`, true);
+                        xhr.send();
+                        xhr.onreadystatechange = () => {
+                            if (xhr.readyState == 4) {
+                                if (xhr.status == 200) {
+                                    var res = JSON.parse(xhr.responseText)
+                                    var pricelst = []
+                                    console.log(res)
+                                    res.features.forEach(e => {
+                                        pricelst.push(e.properties.price)
+                                    })
+                                    this.slidermin = Number(pricelst.reduce((num1, num2) => {
+                                        return num1 < num2 ? num1 : num2
+                                    }).toFixed(1).slice(0, -2))
+                                    this.slidermax = Number(pricelst.reduce((num1, num2) => {
+                                        return num1 > num2 ? num1 : num2
+                                    }).toFixed(1).slice(0, -2)) + 1
+                                    //更新滑动条范围
+                                    this.slidervalue = [this.slidermin, this.slidermax]
+                                }
+                            }
+                        }
+                    },
+                    // hidePanel() {
+                    //     // style写法
+                    //     // this.hiddenInfoStyle.display='block';
+                    //     this.isFolded= !this.isFolded ;
+                    // },
+                    // 全选与取消全选
+                    selectProduct:function(_isSelect){
+                    //遍历productList,全部取反
+                    for (var i = 0; i < this.productList.length; i++) {
+                        this.productList[i].select = !_isSelect
+                    }
+                    },
+                    //删除选中的产品
+                    deleteProduct:function(){
+                    this.productList =this.productList.filter(function(item){return !item.select})
+                    },
+                    //删除单条产品
+                    deleteOneProduct:function(index){
+                    //根据索引删除productList的记录
+                    this.productList.splice(index,1);
+                    },
+                },
+                mounted() {
+                    // this.shops = this.loadAll1();
+                    // this.products = this.loadAll2();
+                    this.firstloadstore();
+                    this.firstloadproduct();
+                    //为productList添加select（是否选中字段，初始值为true）
+                    var _this=this;
+                    this.productList.map(function(item){    //map:'键值对'
+                        _this.$set(item,'select',true)      //往item添加select属性，默认为true
+                    });
+                },
+                computed:{
+                    // 检测是否全选
+                    isSelectAll:function(){
+                        //如果productList中每一条数据的select都为true,就返回true,否则返回false
+                        return this.productList.every(function(val){return  val.select})
+                    },
+                    // 获取总价和产品总数
+                    getTotal:function(){
+                        // 获取list中select为true的数据
+                        var _proList = this.productList.filter(function(val){return val.select}),
+                        totalPrice = 0;
+                        for (var i = 0; i < _proList.length; i++) {
+                            // 总价累加
+                            totalPrice += _proList[i].pro_num * _proList[i].pro_price;
+                        }
+                        // 选择产品的件数就是_proList.lenth，总价就是totalPrice
+                        return{totalNum:_proList.length,totalPrice:totalPrice}
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>

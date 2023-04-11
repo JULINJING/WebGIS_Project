@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <div id="main1" style="width: 600px;height:400px;"></div>
+        <div id="main2" style="width: 600px;height:400px;"></div>
+        <div id="main3" style="width: 600px;height:400px;"></div>
+        <div id="main4" style="width: 600px;height:400px;"></div>
+        <!--ECharts-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.1/echarts.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/openlayers/4.0.0/ol.js" integrity="sha512-DLnIRyLtv5peeQwyoSJ5X/qZ20ILeZU920GqvRg46TpFjFdwVDTjEPVYcQUsQCJLAKcwmaq9/+DL9iYiPiWikA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="./js/echarts-wordcloud.min.js"></script>
+        <script>
+            // 基于准备好的dom，初始化echarts实例
+            var myChart1 = echarts.init(document.getElementById('main1'));
+            var myChart2 = echarts.init(document.getElementById('main2'));
+            var myChart3 = echarts.init(document.getElementById('main3'));
+
+            // 指定图表的配置项和数据
+            //1
+            var option1 = {
+                title: {
+                    text: '各自治市镇犯罪发生次数',
+                    textStyle: {
+                        fontSize: 18,
+                    },
+                },
+                tooltip: {
+                    show: true,
+                    confine: true,
+                    trigger: 'item',
+                    formatter: '{b}<br/>{c}（人）'
+                },
+                legend: {
+                    icon: 'diamond',
+                    orient: 'horizontal',
+                    left: 'right',
+                    itemWidth: 20,
+                    itemHeight: 20,
+                    itemStyle: {
+                        color: '#56ACFF',
+                    },
+                    textStyle: {
+                        color: '#6A93B9',
+                    },
+                    data: ['人数'],
+                },
+                grid: {
+                    left: '20%',
+                    right: '0',
+                    bottom: '0',
+                    top: '5%',
+                },
+                xAxis: {
+                    type: 'value',
+                    splitLine: {
+                        show: false,
+                    },
+                    splitArea: {
+                        show: false,
+                    },
+                },
+                yAxis: [
+                {
+                    type: 'category',
+                    inverse: true,
+                    splitLine: {
+                        show: false,
+                    },
+                    axisTick: {
+                        show: false,
+                    },
+                    axisLine: {
+                        show: false,
+                    },
+                    axisLabel: {
+                        fontSize: 12,
+                        align: 'right',
+                        color: '#6A93B9',
+                    },
+                    offset: 0,
+                    data: ["布朗克斯区Bronx","斯塔滕岛Staten Island","布鲁克林区Brooklyn","曼哈顿区Manhattan","皇后区Queens","未知"],
+                },
+                ],
+                series: [
+                {
+                    z: 2,
+                    name: '人数',
+                    type: 'bar',
+                    zlevel: 1,
+                    barWidth: 40,
+                    itemStyle: {
+                        normal: {
+                            barBorderRadius: 30,
+                            color: {
+                                type: 'linear',
+                                x: 0,
+                                y: 0,
+                                x2: 1,
+                                y2: 0,
+                                colorStops: [
+                                {
+                                    offset: 0,
+                                    color: 'rgba(32, 75, 255, 0.07)', //  0%处的颜色
+                                },
+                                {
+                                    offset: 0.7,
+                                    color: 'rgba(83, 203, 255, 0.92)', //  100%处的颜色
+                                },
+                                {
+                                    offset: 1,
+                                    color: '#56ACFF', //  100%处的颜色
+                                },
+                                ],
+                                global: false, //  缺省为false
+                            },
+                        },
+                    },
+                    data: [43183, 8405, 56395, 51431, 43705, 394],
+                },
+                ],
+            };
+
+            //2
+            var option2 = {
+                title: {
+                    text: '犯罪完成情况',
+                    textStyle: {
+                        fontSize: 18,
+                    },
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}<br/>{c}（人）'
+                },
+                legend: {
+                    type: 'scroll',
+                    selectedMode: true,
+                    data: ["完成","未遂"],
+                    top: 100,
+                    right: 50,
+                    orient: 'vertical'
+                },
+                series: [
+                    {
+                        name: '犯罪完成情况',
+                        type: 'pie',
+                        radius: ['30%', '80%'],
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: "{a} <br/>{b} : {c}（人）<br/>占{d}%"
+                        },
+                        label: {
+                            show: true,
+                            position: 'inside',
+                            formatter: '{b} : {d}%',
+                        },
+                        labelLine: {
+                            show: false
+                        },
+                        itemStyle: {
+                            borderRadius: 10,
+                            borderColor: '#fff',
+                            borderWidth: 5,
+                        },
+                        emphasis: {
+                            focus: 'none',
+                            label: {
+                                fontSize: 20,
+                                fontWeight: 'bold'
+                            }
+                        },
+                        data: [
+                        { name: '完成', value: 200527 },
+                        { name: '未遂', value: 2986 },
+                        ],
+                        animationDuration: function (idx) {
+                            // 越往后的数据时长越大
+                            return idx * 1500;
+                        }
+                    }
+                ]
+            };
+
+            //3
+            var option3 = {
+                title: {
+                    text: '犯罪程度情况',
+                    textStyle: {
+                        fontSize: 18,
+                    },
+                },
+                legend: {
+                    orient: 'horizontal',
+                    top: 50,
+                    right: 50,
+                    data: ["重罪","轻罪","违规"],    //数据
+                    textStyle: {
+                        color: "#000",
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{a} <br/>{b} : {c} ({d}%)'
+                },
+                series: [{
+                    name: '犯罪级别',
+                    type: 'pie',
+                    radius: ['30%', '80%'],
+                    roseType: 'radius',
+                    data: [{
+                            value: 69191,
+                            name: "重罪",
+                            itemStyle: {
+                                color: "#F18C6E",
+                                borderColor: "#F18C6E",
+                                show:false
+                                
+                            }
+                        },
+                        {
+                            value: 102348,
+                            name: "轻罪",
+                            itemStyle: {
+                                color: "#2CA4FB",
+                                borderColor: "#2CA4FB"
+                            }
+                        },
+                        {
+                            value: 31974,
+                            name: "违规",
+                            itemStyle: {
+                                color: "#91CC75",
+                                borderColor: "#91CC75"
+                            }
+                        }
+                    ],
+                    label: {
+                            show: false,
+                            normal: {
+                                formatter: '{b} : {d}%',
+                                show: true,
+                                position: 'inside'
+                            },
+                    },
+                    labelLine: {
+                        normal: {
+                            show: false
+                        }
+                    },
+                    emphasis: {
+                        focus: 'none',
+                        label: {
+                            fontSize: 20,
+                            fontWeight: 'bold'
+                        }
+                    }
+                }]
+            };
+
+            // 使用刚指定的配置项和数据显示图表。
+            myChart1.setOption(option1);
+            myChart2.setOption(option2);
+            myChart3.setOption(option3);
+
+            // 词云图
+            const storeFeatureRequest = new ol.format.WFS().writeGetFeature({
+                srsName: 'EPSG:4326',
+                featureNS: `http://localhost:8088/geoserver/WebGIS`,
+                featurePrefix: `WebGIS`,
+                featureTypes: [`store`],
+                outputFormat: 'application/json',
+                // filter: andFilter(
+                //   likeFilter('name', 'Mississippi*'),
+                //   equalToFilter('waterway', 'riverbank')
+                // ),
+            });
+            function findStoreFeaturesAndShowTable() {
+                fetch(`http://localhost:8088/geoserver/WebGIS/ows`, {
+                    method: 'POST',
+                    body: new XMLSerializer().serializeToString(storeFeatureRequest),
+                }).then(function (response) {
+                    return response.json();
+                }).then(function (json) {
+                    const features = new ol.format.GeoJSON().readFeatures(json);
+                    showTable(features);
+                });
+            }
+
+            function showTable(features) {
+                // console.log(document.getElementById("word-rank"));
+                let rankEcharts = echarts.init(document.getElementById("main4"));
+                // console.log(rankEcharts);
+                console.log(features[0].I.name)
+                let keywords = [];
+                features.forEach(feature => {
+                    keywords.push({
+                        "name": feature.I.name,
+                        "value": feature.I.number
+                    });
+                });
+                console.log(keywords);
+                let option = {
+                    series: [{
+                        type: 'wordCloud',
+                        sizeRange: [15, 80],
+                        rotationRange: [0, 0],
+                        rotationStep: 45,
+                        gridSize: 8,
+                        shape: 'circle',
+                        width: '100%',
+                        height: '100%',
+                        left: 'center',
+                        top: 'center',
+                        textStyle: {
+                            fontFamily: 'sans-serif',
+                            fontWeight: 'bold',
+                            color: function () {
+                                // Random color
+                                return 'rgb(' + [
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160),
+                                    Math.round(Math.random() * 160)
+                                ].join(',') + ')';
+                            }
+                        },
+                        emphasis: {
+                            focus: 'self',
+
+                            textStyle: {
+                                textShadowBlur: 10,
+                                textShadowColor: '#333'
+                            }
+                        },
+                        data: keywords
+                        // 以下是测试
+                        // data: [
+                        // {name: "龙头镇", value: "111"},
+                        // {name: "大埔镇", value: "222"},
+                        // {name: "太平镇", value: "458"},
+                        // {name: "沙埔镇", value: "445"},
+                        // {name: "东泉镇", value: "456"},
+                        // {name: "凤山镇", value: "647"},
+                        // {name: "六塘镇", value: "189"},
+                        // {name: "冲脉镇", value: "864"},
+                        // {name: "寨隆镇", value: "652"},
+                        // ]
+                    }]
+                };
+                console.log(option);
+                rankEcharts.setOption(option);
+                window.addEventListener("resize", function () {
+                    rankEcharts.resize();
+                })
+            }
+
+            findStoreFeaturesAndShowTable();
+        </script>
+    </body>
+</html>

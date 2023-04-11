@@ -1,0 +1,18 @@
+{
+  "name": "webgisproject",
+  "version": "1.0.0",
+  "description": "网络GIS课程设计",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html"
+  },
+  "author": "第12组",
+  "license": "ISC",
+  "dependencies": {
+    "ol": "^7.1.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5"
+  }
+}
